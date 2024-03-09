@@ -25,6 +25,12 @@ import { collection } from "firebase/firestore";
 import { MdClose, MdLogout, MdOutlineQrCodeScanner } from "react-icons/md";
 import { LuPackagePlus } from "react-icons/lu";
 import { GiHamburgerMenu } from "react-icons/gi";
+import { FaRegistered } from "react-icons/fa6";
+import {
+  AdminPanelSettings,
+  AppRegistrationTwoTone,
+  PersonAdd,
+} from "@mui/icons-material";
 export default function Nav() {
   const [user, loading, error] = useAuthState(auth);
   if (!loading && !user) {
@@ -57,25 +63,44 @@ export default function Nav() {
       navPath: "/arm/normal_package",
     },
   ];
+  const navLinkcoporate = [
+    {
+      name: "Add Package",
+      navIcon: <LuPackagePlus />,
+      navPath: "/arm/add_package",
+    },
+    {
+      name: "Register Company",
+      navIcon: <AppRegistrationTwoTone />,
+      navPath: "/arm/register_company",
+    },
+  ];
+  const navmanage = [
+    {
+      name: "Manage Employee",
+      navIcon: <AdminPanelSettings />,
+      navPath: "/arm/employee_manage",
+    },
+  ];
 
-  React.useEffect(() => {
-    if (errorData) {
-      dispatch(
-        openScackbar({
-          open: true,
-          type: "error",
-          msg: "Vehicle data loading Error " + errorData.message,
-        })
-      );
-    }
-    if (!loadingData && value) {
-      const vehiclesData = value.docs.map((doc) => ({
-        car_id: doc.id,
-        ...doc.data(),
-      }));
-      // dispatch(setVehicle({ loading: false, vehicles: vehiclesData }));
-    }
-  }, [loadingData, value, dispatch, errorData]);
+  // React.useEffect(() => {
+  //   if (errorData) {
+  //     dispatch(
+  //       openScackbar({
+  //         open: true,
+  //         type: "error",
+  //         msg: "Vehicle data loading Error " + errorData.message,
+  //       })
+  //     );
+  //   }
+  //   if (!loadingData && value) {
+  //     const vehiclesData = value.docs.map((doc) => ({
+  //       car_id: doc.id,
+  //       ...doc.data(),
+  //     }));
+  //     // dispatch(setVehicle({ loading: false, vehicles: vehiclesData }));
+  //   }
+  // }, [loadingData, value, dispatch, errorData]);
 
   const pathname = usePathname();
 
@@ -98,9 +123,9 @@ export default function Nav() {
               </IconButton>
             </div>
             <List>
-              <ListItem>
-                <Typography variant="subtitle1">Manage Package</Typography>
-              </ListItem>
+              <Typography sx={{ mx: 1 }} variant="subtitle1">
+                Manage Package
+              </Typography>
               {navLinkNormal.map((e, index) => (
                 <ListItem color="primary" key={e.name} disablePadding>
                   <Link href={e.navPath}>
@@ -126,8 +151,69 @@ export default function Nav() {
                   </Link>
                 </ListItem>
               ))}
+              <Divider />
+
+              <Typography sx={{ mx: 1 }} variant="subtitle1">
+                Corporate
+              </Typography>
+
+              {navLinkcoporate.map((e, index) => (
+                <ListItem color="primary" key={e.name} disablePadding>
+                  <Link href={e.navPath}>
+                    <ListItemButton
+                      sx={{
+                        width: 250,
+                        backgroundColor: pathname === e.navPath && "black",
+                        color: pathname === e.navPath && "white",
+                        "&:hover": {
+                          backgroundColor: pathname === e.navPath && "black", // Set to 'none' or any other value to prevent hover effect
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          color: pathname === e.navPath && "white",
+                        }}
+                      >
+                        {e["navIcon"]}
+                      </ListItemIcon>
+                      <ListItemText primary={e["name"]} />
+                    </ListItemButton>
+                  </Link>
+                </ListItem>
+              ))}
+              <Divider />
+
+              <Typography sx={{ mx: 1 }} variant="subtitle1">
+                Manage ARM Air
+              </Typography>
+
+              {navmanage.map((e, index) => (
+                <ListItem color="primary" key={e.name} disablePadding>
+                  <Link href={e.navPath}>
+                    <ListItemButton
+                      sx={{
+                        width: 250,
+                        backgroundColor: pathname === e.navPath && "black",
+                        color: pathname === e.navPath && "white",
+                        "&:hover": {
+                          backgroundColor: pathname === e.navPath && "black", // Set to 'none' or any other value to prevent hover effect
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          color: pathname === e.navPath && "white",
+                        }}
+                      >
+                        {e["navIcon"]}
+                      </ListItemIcon>
+                      <ListItemText primary={e["name"]} />
+                    </ListItemButton>
+                  </Link>
+                </ListItem>
+              ))}
             </List>
-            <Divider />
             <List>
               <ListItem
                 onClick={async () => {

@@ -20,11 +20,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import BoxInter from "./BoxInter";
+import BoxInter from "../normal_package/BoxInter";
 
-export default function AddPackage() {
+export default function AddCorPackage() {
   const [selectRate, setSelectRate] = useState("");
   const [deliType, setDeliType] = useState("dom");
+  const [selectCop, setselectCop] = useState(120);
   const isMounted = useRef(true);
 
   const schema = yup.object({
@@ -244,40 +245,34 @@ export default function AddPackage() {
           >
             Package Details
           </Typography>
-
+          <div className="w-screen md:w-input-max m-auto my-2"></div>
           <div className="grid md:grid-cols-2 md:grid-rows-2 gap-4 grid-rows-4  ">
             <FormControl fullWidth>
               <InputLabel>Select Rate</InputLabel>
               <Select
-                value={selectRate}
+                value={selectCop}
                 label="Select Rate"
                 onChange={(e) => {
                   setValue("rate", e.target.value);
-                  setSelectRate(e.target.value);
+                  setselectCop(e.target.value);
                 }}
               >
                 <MenuItem value={120}>
                   <div className="flex justify-between w-full">
-                    <Typography>Colombo</Typography>
+                    <Typography>Pro</Typography>
                     <Typography>Rs.120/130</Typography>
                   </div>
                 </MenuItem>
                 <MenuItem value={110}>
                   <div className="flex justify-between w-full">
-                    <Typography>Kandy</Typography>
+                    <Typography>Basic</Typography>
                     <Typography>Rs.110/120</Typography>
-                  </div>
-                </MenuItem>
-                <MenuItem value={100}>
-                  <div className="flex justify-between w-full">
-                    <Typography>Mwanella</Typography>
-                    <Typography>Rs.100/110</Typography>
                   </div>
                 </MenuItem>
               </Select>
             </FormControl>
 
-            <div className="flex gap-2">
+            <div className=" gap-2">
               <Controller
                 name="rate"
                 control={control}
@@ -300,7 +295,17 @@ export default function AddPackage() {
                 render={({ field }) => (
                   <FormControlLabel
                     control={<Checkbox {...field} />}
-                    label="COD"
+                    label="Delivery Rate COD"
+                  />
+                )}
+              />
+              <Controller
+                name="rate_cod"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Checkbox {...field} />}
+                    label="Pay Monthly"
                   />
                 )}
               />

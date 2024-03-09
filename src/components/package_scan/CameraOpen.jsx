@@ -12,16 +12,29 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 import Slide from "@mui/material/Slide";
-import { DialogContent, DialogTitle } from "@mui/material";
+import { DialogContent, DialogTitle, Fab, TextField } from "@mui/material";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import Html5QrcodePlugin from "./Html5QrcodePlugin";
 
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
+import { Add, Scanner } from "@mui/icons-material";
+import { BsUpcScan } from "react-icons/bs";
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-export default function CameraOpen() {
+export default function CameraOpen({ getPackageID }) {
   const [open, setOpen] = React.useState(false);
+  const [value, setValue] = React.useState("camera");
+  const [inputVal, setInputVal] = React.useState("");
+
+  const handleChange = (event) => {
+    setValue(event.target.value);
+  };
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -31,15 +44,27 @@ export default function CameraOpen() {
     setOpen(false);
   };
   const onNewScanResult = (decodedText, decodedResult) => {
-    console.log(decodedText);
+    getPackageID(decodedText);
+    setOpen(false);
   };
+  const fab = {
+    color: "primary",
+    sx: fabStyle,
+    icon: <BsUpcScan size={30} />,
+    label: "Add",
+  };
+
   return (
     <React.Fragment>
-      <Button variant="outlined" onClick={handleClickOpen}>
-        Open full-screen dialog
-      </Button>
+      <Fab
+        sx={fab.sx}
+        aria-label={fab.label}
+        color="primary"
+        onClick={handleClickOpen}
+      >
+        {fab.icon}
+      </Fab>
       <Dialog
-        fullScreen
         open={open}
         onClose={handleClose}
         TransitionComponent={Transition}
@@ -55,14 +80,66 @@ export default function CameraOpen() {
           </IconButton>
         </DialogTitle>
         <DialogContent>
-          <Html5QrcodePlugin
-            fps={10}
-            qrbox={250}
-            disableFlip={false}
-            qrCodeSuccessCallback={onNewScanResult}
-          />
+          <div>
+            <FormControl>
+              <FormLabel id="demo-controlled-radio-buttons-group">
+                Scan Option
+              </FormLabel>
+              <RadioGroup
+                row
+                aria-labelledby="demo-controlled-radio-buttons-group"
+                name="controlled-radio-buttons-group"
+                value={value}
+                onChange={handleChange}
+              >
+                <FormControlLabel
+                  value="camera"
+                  control={<Radio />}
+                  label="Camera"
+                />
+                <FormControlLabel
+                  value="search"
+                  control={<Radio />}
+                  label="Search"
+                />
+              </RadioGroup>
+            </FormControl>
+          </div>
+          {value === "camera" ? (
+            <Html5QrcodePlugin
+              fps={10}
+              qrbox={250}
+              disableFlip={false}
+              qrCodeSuccessCallback={onNewScanResult}
+            />
+          ) : (
+            <div className="flex">
+              <TextField
+                onChange={(e) => setInputVal(e.target.value)}
+                size="small"
+                label="Package Number"
+              />
+              <Button
+                sx={{ mx: 1 }}
+                variant="contained"
+                onClick={() => {
+                  if (inputVal) {
+                    getPackageID(inputVal);
+                    setOpen(false);
+                  }
+                }}
+              >
+                Search
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </React.Fragment>
   );
 }
+const fabStyle = {
+  position: "absolute",
+  bottom: 16,
+  right: 16,
+};
