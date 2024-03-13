@@ -1,5 +1,10 @@
+import EmployeTable from "@/components/employee_manage/EmployeTable";
 import { CircularProgress } from "@mui/material";
 
 export default function Home() {
-  return <main>m</main>;
+  return (
+    <main>
+      <EmployeTable />
+    </main>
+  );
 }

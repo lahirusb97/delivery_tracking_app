@@ -15,8 +15,8 @@ export default function BoxInter({ control, errors }) {
             defaultValue=""
             label="Tracking Number"
             fullWidth
-            error={errors.zip_code ? true : false}
-            helperText={errors.zip_code && errors.zip_code.message}
+            error={errors.tracking_id ? true : false}
+            helperText={errors.tracking_id && errors.tracking_id.message}
           />
         )}
       />

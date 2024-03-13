@@ -21,13 +21,38 @@ import {
   Typography,
 } from "@mui/material";
 import BoxInter from "../normal_package/BoxInter";
+import { useDispatch, useSelector } from "react-redux";
+import { openScackbar } from "@/redux/Slice/snackBarSlice";
+import {
+  doc,
+  getDoc,
+  getFirestore,
+  increment,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import CameraOpen from "../package_scan/CameraOpen";
+import dayjs from "dayjs";
 
 export default function AddCorPackage() {
-  const [selectRate, setSelectRate] = useState("");
+  // const [selectRate, setSelectRate] = useState("");
   const [deliType, setDeliType] = useState("dom");
-  const [selectCop, setselectCop] = useState(120);
+  const [selectCop, setselectCop] = useState("");
+  const [package_ID, setPackage_ID] = React.useState("");
+  const [date, setDate] = React.useState(dayjs(new Date()));
+  const dispatch = useDispatch();
+  const getPackageID = (id) => {
+    setPackage_ID(id);
+  };
   const isMounted = useRef(true);
+  //TODO GETING COP
+  const COPLIST = useSelector((state) => state.root_data.DATA);
 
+  const COPLISTLoading = useSelector((state) => state.root_data.loading);
+  const USERDATA = useSelector((state) => state.root_data.USERDATA);
+
+  //TODO GETING COP
   const schema = yup.object({
     s_name: yup.string().required("Enter Sender name"),
     s_address: yup.string().required("Enter Sender Address"),
@@ -42,7 +67,8 @@ export default function AddCorPackage() {
       .moreThan(-1)
       .default(0),
     weight: yup.number().positive().required("Enter Package Weight"),
-    rate_cod: yup.bool(),
+    rate_cod: yup.bool().default(false),
+    rate_monthly_pay: yup.bool().default(false),
     country:
       deliType === "dom"
         ? yup.string()
@@ -69,12 +95,195 @@ export default function AddCorPackage() {
     control,
     formState: { errors },
   } = useForm({ resolver: yupResolver(schema) });
-  const addPackage = (data) => {
-    console.log(data);
+  const addPackage = async (data) => {
+    if (selectCop && package_ID) {
+      const pushDataIntr = {
+        date: serverTimestamp(),
+        sender: {
+          name: data.s_name,
+          address: data.s_address,
+          mobile: data.s_mobile,
+        },
+        reciver: {
+          name: data.r_name,
+          address: data.r_address,
+          mobile: data.r_mobile,
+          country: data.country,
+          city: data.city,
+          zip_code: data.zip_code,
+        },
+
+        tracking_id: data.tracking_id,
+        date: serverTimestamp(),
+        delivery_type: deliType,
+        rate: data.rate,
+        rate_cod: data.rate_cod,
+        rate_monthly_pay: data.rate_monthly_pay,
+        cop_id: selectCop,
+        package_price: data.package_price,
+        weight: data.weight,
+        cod: data.rate_cod === true || data.package_price > 0 ? true : false,
+        state: "pending",
+        branch_area: USERDATA.area,
+        tracking: {
+          [USERDATA.id]: {
+            name: USERDATA.name,
+            area: USERDATA.area,
+            date: serverTimestamp(),
+            job_role:
+              USERDATA.job_role === "rider"
+                ? "Rider"
+                : USERDATA.job_role === "branch"
+                ? "Branch"
+                : USERDATA.job_role === "admin"
+                ? "Manager"
+                : "",
+          },
+        },
+      };
+      const pushDataLocal = {
+        date: serverTimestamp(),
+        sender: {
+          name: data.s_name,
+          address: data.s_address,
+          mobile: data.s_mobile,
+        },
+        reciver: {
+          name: data.r_name,
+          address: data.r_address,
+          mobile: data.r_mobile,
+        },
+        date: serverTimestamp(),
+        delivery_type: deliType,
+        rate: data.rate,
+        rate_cod: data.rate_cod,
+        rate_monthly_pay: data.rate_monthly_pay,
+        cop_id: selectCop,
+        package_price: data.package_price,
+        weight: data.weight,
+        cod: data.rate_cod === true || data.package_price > 0 ? true : false,
+        state: "pending",
+        branch_area: USERDATA.area,
+        tracking: {
+          [USERDATA.id]: {
+            name: USERDATA.name,
+            area: USERDATA.area,
+            date: serverTimestamp(),
+            job_role:
+              USERDATA.job_role === "rider"
+                ? "Rider"
+                : USERDATA.job_role === "branch"
+                ? "Branch"
+                : USERDATA.job_role === "admin"
+                ? "Manager"
+                : "",
+          },
+        },
+      };
+      try {
+        const docRef = doc(
+          getFirestore(),
+          "package",
+          `${package_ID.toString()}`
+        );
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+          await setDoc(
+            doc(getFirestore(), "package", `${package_ID.toString()}`),
+            deliType === "dom" ? pushDataLocal : pushDataIntr
+          )
+            .then(async () => {
+              const currentDate = dayjs(new Date());
+              const washingtonRef = doc(
+                getFirestore(),
+                "coporate",
+                selectCop,
+                currentDate["$y"].toString(),
+                (currentDate["$M"] + 1).toString()
+              );
+
+              const docSnapshot = await getDoc(washingtonRef);
+              if (docSnapshot.exists()) {
+                await updateDoc(washingtonRef, {
+                  total_rate: increment(data.rate_monthly_pay ? data.rate : 0),
+                  on_cash_sale: increment(
+                    !data.rate_monthly_pay ? data.rate : 0
+                  ),
+                });
+              } else {
+                await setDoc(washingtonRef, {
+                  total_rate: data.rate_monthly_pay ? data.rate : 0,
+                });
+              }
+            })
+            .then(() => {
+              if (deliType === "int") {
+                reset({
+                  s_name: "",
+                  s_address: "",
+                  s_mobile: "",
+                  r_name: "",
+                  r_address: "",
+                  r_mobile: "",
+                  rate: "",
+                  package_price: "",
+                  weight: "",
+                  rate_cod: false,
+                  rate_monthly_pay: false,
+                  country: "",
+                  city: "",
+                  tracking_id: "",
+                  zip_code: "",
+                });
+              } else {
+                reset({
+                  s_name: "",
+                  s_address: "",
+                  s_mobile: "",
+                  r_name: "",
+                  r_address: "",
+                  r_mobile: "",
+                  rate: "",
+                  package_price: "",
+                  weight: "",
+                  rate_cod: false,
+                  rate_monthly_pay: false,
+                });
+              }
+            });
+          reset();
+          setPackage_ID("");
+          setselectCop("");
+          dispatch(
+            openScackbar({ open: true, type: "success", msg: "Package Added" })
+          );
+        } else {
+          dispatch(
+            openScackbar({
+              open: true,
+              type: "error",
+              msg: "Package ID Already Exist",
+            })
+          );
+        }
+      } catch (err) {
+        dispatch(openScackbar({ open: true, type: "error", msg: err.message }));
+      }
+    } else {
+      dispatch(
+        openScackbar({
+          open: true,
+          type: "error",
+          msg: "Enter Package ID & Select Company",
+        })
+      );
+    }
   };
+
+  //! END OF ADD PACKAGE
   useEffect(() => {
     if (deliType === "dom" && !isMounted.current) {
-      console.log(isMounted.current);
       unregister(["country", "city", "zip_code", "tracking_id"]);
     }
   }, [unregister, deliType, isMounted.current]);
@@ -82,6 +291,10 @@ export default function AddCorPackage() {
   return (
     <div>
       <form onSubmit={handleSubmit(addPackage)}>
+        <CameraOpen getPackageID={getPackageID} />
+        <Typography variant="h6">
+          Package ID: {package_ID ? package_ID : "---"}
+        </Typography>
         <div className="flex justify-center text-center">
           <FormControl>
             <FormLabel id="demo-row-radio-buttons-group-label">
@@ -129,6 +342,7 @@ export default function AddCorPackage() {
                   <TextField
                     {...field}
                     label="Name"
+                    type="text"
                     fullWidth
                     error={errors.s_name ? true : false}
                     helperText={errors.s_name && errors.s_name.message}
@@ -144,6 +358,7 @@ export default function AddCorPackage() {
                     defaultValue=""
                     label="Address"
                     fullWidth
+                    type="text"
                     error={errors.s_address ? true : false}
                     helperText={errors.s_address && errors.s_address.message}
                   />
@@ -158,6 +373,7 @@ export default function AddCorPackage() {
                     defaultValue=""
                     label="Mobile"
                     fullWidth
+                    type="number"
                     error={errors.s_mobile ? true : false}
                     helperText={errors.s_mobile && errors.s_mobile.message}
                   />
@@ -189,6 +405,7 @@ export default function AddCorPackage() {
                     defaultValue=""
                     label="Name"
                     fullWidth
+                    type="text"
                     error={errors.r_name ? true : false}
                     helperText={errors.r_name && errors.r_name.message}
                   />
@@ -203,6 +420,7 @@ export default function AddCorPackage() {
                     defaultValue=""
                     label="Address"
                     fullWidth
+                    type="text"
                     error={errors.r_address ? true : false}
                     helperText={errors.r_address && errors.r_address.message}
                   />
@@ -217,6 +435,7 @@ export default function AddCorPackage() {
                     defaultValue=""
                     label="Mobile"
                     fullWidth
+                    type="number"
                     error={errors.r_mobile ? true : false}
                     helperText={errors.r_mobile && errors.r_mobile.message}
                   />
@@ -248,27 +467,21 @@ export default function AddCorPackage() {
           <div className="w-screen md:w-input-max m-auto my-2"></div>
           <div className="grid md:grid-cols-2 md:grid-rows-2 gap-4 grid-rows-4  ">
             <FormControl fullWidth>
-              <InputLabel>Select Rate</InputLabel>
+              <InputLabel>Select Company</InputLabel>
               <Select
-                value={selectCop}
-                label="Select Rate"
+                value={selectCop || ""}
+                label="Select Company"
                 onChange={(e) => {
-                  setValue("rate", e.target.value);
                   setselectCop(e.target.value);
                 }}
               >
-                <MenuItem value={120}>
-                  <div className="flex justify-between w-full">
-                    <Typography>Pro</Typography>
-                    <Typography>Rs.120/130</Typography>
-                  </div>
-                </MenuItem>
-                <MenuItem value={110}>
-                  <div className="flex justify-between w-full">
-                    <Typography>Basic</Typography>
-                    <Typography>Rs.110/120</Typography>
-                  </div>
-                </MenuItem>
+                {!COPLISTLoading
+                  ? COPLIST.map((cop) => (
+                      <MenuItem key={cop.cop_id} value={cop.cop_id}>
+                        {cop.name}
+                      </MenuItem>
+                    ))
+                  : null}
               </Select>
             </FormControl>
 
@@ -300,7 +513,7 @@ export default function AddCorPackage() {
                 )}
               />
               <Controller
-                name="rate_cod"
+                name="rate_monthly_pay"
                 control={control}
                 render={({ field }) => (
                   <FormControlLabel

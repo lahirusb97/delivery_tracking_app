@@ -1,15 +1,15 @@
 import React from "react";
-import { Card, CardContent, Typography } from "@mui/material";
+import { Card, CardContent, Divider, Typography } from "@mui/material";
 import { FaMapLocation } from "react-icons/fa6";
 import { GoPackageDependents } from "react-icons/go";
 import { Person } from "@mui/icons-material";
-export default function RiderTrack({ detail, iconColor, title }) {
+export default function RiderTrack({ detail, iconColor, title, index }) {
   return (
     <div className="p-2">
       <Card className="flex" variant="elevation" elevation={0}>
         <div className="flex flex-col justify-center items-center">
           <div className="bg-green-600 p-2 rounded-full w-8 h-8 flex items-center justify-center text-white">
-            <Typography>1</Typography>
+            <Typography>{index + 1}</Typography>
           </div>
 
           <div className="border-l-4 border-green-600  h-32"></div>
@@ -48,16 +48,9 @@ export default function RiderTrack({ detail, iconColor, title }) {
               <GoPackageDependents style={{ color: iconColor }} />
             </div>
           </div>
-          <Typography
-            className="float-right"
-            color={"primary"}
-            fontWeight={400}
-            variant="subtitle1"
-          >
-            View Profile
-          </Typography>
         </CardContent>
       </Card>
+      <Divider />
     </div>
   );
 }

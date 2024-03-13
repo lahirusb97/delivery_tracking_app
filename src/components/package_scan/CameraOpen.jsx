@@ -56,14 +56,14 @@ export default function CameraOpen({ getPackageID }) {
 
   return (
     <React.Fragment>
-      <Fab
-        sx={fab.sx}
+      <Button
+        variant="contained"
         aria-label={fab.label}
         color="primary"
         onClick={handleClickOpen}
       >
-        {fab.icon}
-      </Fab>
+        Open Scan <BsUpcScan sx={{ m: 1 }} size={30} />
+      </Button>
       <Dialog
         open={open}
         onClose={handleClose}
@@ -100,7 +100,7 @@ export default function CameraOpen({ getPackageID }) {
                 <FormControlLabel
                   value="search"
                   control={<Radio />}
-                  label="Search"
+                  label="Manual Input"
                 />
               </RadioGroup>
             </FormControl>
@@ -129,7 +129,7 @@ export default function CameraOpen({ getPackageID }) {
                   }
                 }}
               >
-                Search
+                Add Package Id
               </Button>
             </div>
           )}

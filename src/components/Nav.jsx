@@ -19,8 +19,12 @@ import { Divider, IconButton, Typography } from "@mui/material";
 import { auth, firestore } from "@/firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { openScackbar } from "@/redux/Slice/snackBarSlice";
-import { useCollection } from "react-firebase-hooks/firestore";
-import { collection } from "firebase/firestore";
+import {
+  useCollection,
+  useDocument,
+  useDocumentData,
+} from "react-firebase-hooks/firestore";
+import { collection, doc, getFirestore, onSnapshot } from "firebase/firestore";
 
 import { MdClose, MdLogout, MdOutlineQrCodeScanner } from "react-icons/md";
 import { LuPackagePlus } from "react-icons/lu";
@@ -31,36 +35,51 @@ import {
   AppRegistrationTwoTone,
   PersonAdd,
 } from "@mui/icons-material";
+import { setRootData, setUserData } from "@/redux/Slice/rootDataSlice";
 export default function Nav() {
   const [user, loading, error] = useAuthState(auth);
+  const [loadingData, setLoadingData] = React.useState(true);
+  const [value, setvalue] = React.useState(null);
   if (!loading && !user) {
     redirect("/login");
   }
   const dispatch = useDispatch();
   const router = useRouter();
   const OPEN = useSelector((state) => state.nav_bar.OPEN);
-
   const toggleDrawer = () => {
     dispatch(openNavBar());
   };
-  const [value, loadingData, errorData] = useCollection(
-    collection(firestore, "vehicles"),
-    {
-      snapshotListenOptions: { includeMetadataChanges: true },
-    }
-  );
 
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(getFirestore(), "data", "coporate"), (doc) => {
+      const arrayData = Object.keys(doc.data().coporate).map((key) => {
+        const cop_id = key; // Get the ID
+        const data = doc.data().coporate[key]; // Get the data
+        return { cop_id, ...data };
+      });
+      console.log(arrayData);
+
+      dispatch(
+        setRootData({
+          DATA: arrayData,
+          loading: false,
+          DATAObj: doc.data().coporate,
+        })
+      );
+    });
+  });
   const navLinkNormal = [
     {
       name: "Package Scan",
       navIcon: <MdOutlineQrCodeScanner />,
       navPath: "/arm/package_scan",
+      access: ["admin", "branch", "rider"],
     },
-
     {
       name: "Add Package",
       navIcon: <LuPackagePlus />,
       navPath: "/arm/normal_package",
+      access: ["admin", "branch"],
     },
   ];
   const navLinkcoporate = [
@@ -68,11 +87,13 @@ export default function Nav() {
       name: "Add Package",
       navIcon: <LuPackagePlus />,
       navPath: "/arm/add_package",
+      access: ["admin", "branch"],
     },
     {
-      name: "Register Company",
+      name: "Manage Coporate",
       navIcon: <AppRegistrationTwoTone />,
-      navPath: "/arm/register_company",
+      navPath: "/arm/manage_company",
+      access: ["admin", "branch"],
     },
   ];
   const navmanage = [
@@ -80,29 +101,46 @@ export default function Nav() {
       name: "Manage Employee",
       navIcon: <AdminPanelSettings />,
       navPath: "/arm/employee_manage",
+      access: ["admin"],
     },
   ];
 
-  // React.useEffect(() => {
-  //   if (errorData) {
-  //     dispatch(
-  //       openScackbar({
-  //         open: true,
-  //         type: "error",
-  //         msg: "Vehicle data loading Error " + errorData.message,
-  //       })
-  //     );
-  //   }
-  //   if (!loadingData && value) {
-  //     const vehiclesData = value.docs.map((doc) => ({
-  //       car_id: doc.id,
-  //       ...doc.data(),
-  //     }));
-  //     // dispatch(setVehicle({ loading: false, vehicles: vehiclesData }));
-  //   }
-  // }, [loadingData, value, dispatch, errorData]);
+  React.useEffect(() => {
+    if (error) {
+      dispatch(
+        openScackbar({
+          open: true,
+          type: "error",
+          msg: "user data loading Error " + error.message,
+        })
+      );
+    }
+    if (!loading && user) {
+      setLoadingData(true);
+      const unsub = onSnapshot(doc(getFirestore(), "user", user.uid), (doc) => {
+        setvalue(doc.data());
+        dispatch(setUserData({ ...doc.data(), id: doc.id }));
+        setLoadingData(false);
+      });
+    }
+  }, [user]);
 
   const pathname = usePathname();
+
+  if (value?.job_role !== "admin") {
+    if (pathname === "/arm/employee_manage") {
+      redirect("/arm/package_scan");
+    }
+  }
+  if (value?.job_role !== "branch" && value?.job_role !== "admin") {
+    if (
+      pathname === "/arm/normal_package" ||
+      pathname === "/arm/add_package" ||
+      pathname === "/arm/manage_company"
+    ) {
+      redirect("/arm/package_scan");
+    }
+  }
 
   return (
     <div>
@@ -126,93 +164,112 @@ export default function Nav() {
               <Typography sx={{ mx: 1 }} variant="subtitle1">
                 Manage Package
               </Typography>
-              {navLinkNormal.map((e, index) => (
-                <ListItem color="primary" key={e.name} disablePadding>
-                  <Link href={e.navPath}>
-                    <ListItemButton
-                      sx={{
-                        width: 250,
-                        backgroundColor: pathname === e.navPath && "black",
-                        color: pathname === e.navPath && "white",
-                        "&:hover": {
-                          backgroundColor: pathname === e.navPath && "black", // Set to 'none' or any other value to prevent hover effect
-                        },
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          color: pathname === e.navPath && "white",
-                        }}
-                      >
-                        {e["navIcon"]}
-                      </ListItemIcon>
-                      <ListItemText primary={e["name"]} />
-                    </ListItemButton>
-                  </Link>
-                </ListItem>
-              ))}
+              {navLinkNormal.map(
+                (e, index) =>
+                  e.access.includes(value?.job_role) && (
+                    <ListItem color="primary" key={e.name} disablePadding>
+                      <Link href={e.navPath}>
+                        <ListItemButton
+                          sx={{
+                            width: 250,
+                            backgroundColor: pathname === e.navPath && "black",
+                            color: pathname === e.navPath && "white",
+                            "&:hover": {
+                              backgroundColor:
+                                pathname === e.navPath && "black", // Set to 'none' or any other value to prevent hover effect
+                            },
+                          }}
+                        >
+                          <ListItemIcon
+                            sx={{
+                              color: pathname === e.navPath && "white",
+                            }}
+                          >
+                            {e["navIcon"]}
+                          </ListItemIcon>
+                          <ListItemText primary={e["name"]} />
+                        </ListItemButton>
+                      </Link>
+                    </ListItem>
+                  )
+              )}
               <Divider />
 
-              <Typography sx={{ mx: 1 }} variant="subtitle1">
-                Corporate
-              </Typography>
-
-              {navLinkcoporate.map((e, index) => (
-                <ListItem color="primary" key={e.name} disablePadding>
-                  <Link href={e.navPath}>
-                    <ListItemButton
-                      sx={{
-                        width: 250,
-                        backgroundColor: pathname === e.navPath && "black",
-                        color: pathname === e.navPath && "white",
-                        "&:hover": {
-                          backgroundColor: pathname === e.navPath && "black", // Set to 'none' or any other value to prevent hover effect
-                        },
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          color: pathname === e.navPath && "white",
-                        }}
-                      >
-                        {e["navIcon"]}
-                      </ListItemIcon>
-                      <ListItemText primary={e["name"]} />
-                    </ListItemButton>
-                  </Link>
-                </ListItem>
-              ))}
+              {value?.job_role !== "rider" ? (
+                <Typography sx={{ mx: 1 }} variant="subtitle1">
+                  Corporate
+                </Typography>
+              ) : (
+                <></>
+              )}
+              {navLinkcoporate.map(
+                (e, index) =>
+                  e.access.includes(value?.job_role) && (
+                    <ListItem color="primary" key={e.name} disablePadding>
+                      <Link href={e.navPath}>
+                        <ListItemButton
+                          sx={{
+                            width: 250,
+                            backgroundColor: pathname === e.navPath && "black",
+                            color: pathname === e.navPath && "white",
+                            "&:hover": {
+                              backgroundColor:
+                                pathname === e.navPath && "black", // Set to 'none' or any other value to prevent hover effect
+                            },
+                          }}
+                        >
+                          <ListItemIcon
+                            sx={{
+                              color: pathname === e.navPath && "white",
+                            }}
+                          >
+                            {e["navIcon"]}
+                          </ListItemIcon>
+                          <ListItemText primary={e["name"]} />
+                        </ListItemButton>
+                      </Link>
+                    </ListItem>
+                  )
+              )}
               <Divider />
 
-              <Typography sx={{ mx: 1 }} variant="subtitle1">
-                Manage ARM Air
-              </Typography>
+              {value?.job_role === "admin" ? (
+                <Typography sx={{ mx: 1 }} variant="subtitle1">
+                  Manage ARM Air
+                </Typography>
+              ) : (
+                <></>
+              )}
 
-              {navmanage.map((e, index) => (
-                <ListItem color="primary" key={e.name} disablePadding>
-                  <Link href={e.navPath}>
-                    <ListItemButton
-                      sx={{
-                        width: 250,
-                        backgroundColor: pathname === e.navPath && "black",
-                        color: pathname === e.navPath && "white",
-                        "&:hover": {
-                          backgroundColor: pathname === e.navPath && "black", // Set to 'none' or any other value to prevent hover effect
-                        },
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          color: pathname === e.navPath && "white",
-                        }}
-                      >
-                        {e["navIcon"]}
-                      </ListItemIcon>
-                      <ListItemText primary={e["name"]} />
-                    </ListItemButton>
-                  </Link>
-                </ListItem>
-              ))}
+              {navmanage.map(
+                (e, index) =>
+                  e.access.includes(value?.job_role) && (
+                    <ListItem color="primary" key={e.name} disablePadding>
+                      <Link href={e.navPath}>
+                        <ListItemButton
+                          sx={{
+                            width: 250,
+                            backgroundColor: pathname === e.navPath && "black",
+                            color: pathname === e.navPath && "white",
+                            "&:hover": {
+                              backgroundColor:
+                                pathname === e.navPath && "black", // Set to 'none' or any other value to prevent hover effect
+                            },
+                          }}
+                        >
+                          <ListItemIcon
+                            sx={{
+                              color: pathname === e.navPath && "white",
+                            }}
+                          >
+                            {e["navIcon"]}
+                          </ListItemIcon>
+                          <ListItemText primary={e["name"]} />
+                        </ListItemButton>
+                      </Link>
+                    </ListItem>
+                  )
+              )}
             </List>
             <List>
               <ListItem

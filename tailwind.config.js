@@ -14,6 +14,8 @@ module.exports = {
       },
       width: {
         "input-max": "450px",
+        "dialog-screen": "80vw",
+        "dialog-screen2": "90vw",
       },
     },
   },

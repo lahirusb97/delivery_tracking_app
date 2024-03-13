@@ -24,7 +24,7 @@ export default function Login() {
   const dispatch = useDispatch();
   const [userz, loadingz, errorz] = useAuthState(auth);
 
-  const [email, setEmail] = useState("armairexpressdb@gmail.com");
+  const [email, setEmail] = useState("lahirushirant@gmail.com");
   const [password, setPassword] = useState("qwertyu");
   const [signInWithEmailAndPassword, user, loading, error] =
     useSignInWithEmailAndPassword(auth);

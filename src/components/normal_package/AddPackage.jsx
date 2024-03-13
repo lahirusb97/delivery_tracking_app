@@ -21,10 +21,25 @@ import {
   Typography,
 } from "@mui/material";
 import BoxInter from "./BoxInter";
+import CameraOpen from "../package_scan/CameraOpen";
+import { useDispatch } from "react-redux";
+import { openScackbar } from "@/redux/Slice/snackBarSlice";
+import {
+  doc,
+  getDoc,
+  getFirestore,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 
 export default function AddPackage() {
   const [selectRate, setSelectRate] = useState("");
   const [deliType, setDeliType] = useState("dom");
+  const [package_ID, setPackage_ID] = React.useState("");
+  const dispatch = useDispatch();
+  const getPackageID = (id) => {
+    setPackage_ID(id);
+  };
   const isMounted = useRef(true);
 
   const schema = yup.object({
@@ -41,7 +56,7 @@ export default function AddPackage() {
       .moreThan(-1)
       .default(0),
     weight: yup.number().positive().required("Enter Package Weight"),
-    rate_cod: yup.bool(),
+    rate_cod: yup.bool().default(false),
     country:
       deliType === "dom"
         ? yup.string()
@@ -68,8 +83,123 @@ export default function AddPackage() {
     control,
     formState: { errors },
   } = useForm({ resolver: yupResolver(schema) });
-  const addPackage = (data) => {
-    console.log(data);
+
+  const addPackage = async (data) => {
+    if (package_ID) {
+      const pushDataIntr = {
+        date: serverTimestamp(),
+        sender: {
+          name: data.s_name,
+          address: data.s_address,
+          mobile: data.s_mobile,
+        },
+        reciver: {
+          name: data.r_name,
+          address: data.r_address,
+          mobile: data.r_mobile,
+          country: data.country,
+          city: data.city,
+          zip_code: data.zip_code,
+        },
+        tracking_id: data.tracking_id,
+        delivery_type: deliType,
+        rate: data.rate,
+        rate_cod: data.rate_cod,
+        package_price: data.package_price,
+        weight: data.weight,
+        cod: data.rate_cod === true || data.package_price > 0 ? true : false,
+        state: "pending",
+      };
+      const pushDataLocal = {
+        date: serverTimestamp(),
+        sender: {
+          name: data.s_name,
+          address: data.s_address,
+          mobile: data.s_mobile,
+        },
+        reciver: {
+          name: data.r_name,
+          address: data.r_address,
+          mobile: data.r_mobile,
+        },
+        delivery_type: deliType,
+        rate: data.rate,
+        rate_cod: data.rate_cod,
+        package_price: data.package_price,
+        weight: data.weight,
+        cod: data.rate_cod === true || data.package_price > 0 ? true : false,
+        state: "pending",
+      };
+
+      try {
+        const docRef = doc(
+          getFirestore(),
+          "package",
+          `${package_ID.toString()}`
+        );
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+          await setDoc(
+            doc(getFirestore(), "package", `${package_ID}`),
+            deliType === "dom" ? pushDataLocal : pushDataIntr
+          ).then(() => {
+            if (deliType === "int") {
+              reset({
+                s_name: "",
+                s_address: "",
+                s_mobile: "",
+                r_name: "",
+                r_address: "",
+                r_mobile: "",
+                rate: "",
+                package_price: "",
+                weight: "",
+                rate_cod: false,
+                country: "",
+                city: "",
+                tracking_id: "",
+                zip_code: "",
+              });
+            } else {
+              reset({
+                s_name: "",
+                s_address: "",
+                s_mobile: "",
+                r_name: "",
+                r_address: "",
+                r_mobile: "",
+                rate: "",
+                package_price: "",
+                weight: "",
+                rate_cod: false,
+              });
+            }
+
+            reset();
+            setPackage_ID("");
+          });
+
+          dispatch(
+            openScackbar({ open: true, type: "success", msg: "Package Added" })
+          );
+        } else {
+          dispatch(
+            openScackbar({
+              open: true,
+              type: "error",
+              msg: "Package ID Alredy Exists",
+            })
+          );
+        }
+      } catch (err) {
+        openScackbar({ open: true, type: "error", msg: err.message });
+      }
+    } else {
+      dispatch(
+        openScackbar({ open: true, type: "error", msg: "Enter Package ID" })
+      );
+    }
   };
   useEffect(() => {
     if (deliType === "dom" && !isMounted.current) {
@@ -81,6 +211,11 @@ export default function AddPackage() {
   return (
     <div>
       <form onSubmit={handleSubmit(addPackage)}>
+        <CameraOpen getPackageID={getPackageID} />
+        <Typography variant="h6">
+          Package ID: {package_ID ? package_ID : "---"}
+        </Typography>
+
         <div className="flex justify-center text-center">
           <FormControl>
             <FormLabel id="demo-row-radio-buttons-group-label">
@@ -129,6 +264,8 @@ export default function AddPackage() {
                     {...field}
                     label="Name"
                     fullWidth
+                    type="text"
+                    defaultValue=""
                     error={errors.s_name ? true : false}
                     helperText={errors.s_name && errors.s_name.message}
                   />
@@ -142,6 +279,7 @@ export default function AddPackage() {
                     {...field}
                     defaultValue=""
                     label="Address"
+                    type="text"
                     fullWidth
                     error={errors.s_address ? true : false}
                     helperText={errors.s_address && errors.s_address.message}
@@ -156,6 +294,7 @@ export default function AddPackage() {
                     {...field}
                     defaultValue=""
                     label="Mobile"
+                    type="number"
                     fullWidth
                     error={errors.s_mobile ? true : false}
                     helperText={errors.s_mobile && errors.s_mobile.message}
@@ -187,6 +326,7 @@ export default function AddPackage() {
                     {...field}
                     defaultValue=""
                     label="Name"
+                    type="text"
                     fullWidth
                     error={errors.r_name ? true : false}
                     helperText={errors.r_name && errors.r_name.message}
@@ -201,6 +341,7 @@ export default function AddPackage() {
                     {...field}
                     defaultValue=""
                     label="Address"
+                    type="text"
                     fullWidth
                     error={errors.r_address ? true : false}
                     helperText={errors.r_address && errors.r_address.message}
@@ -216,6 +357,7 @@ export default function AddPackage() {
                     defaultValue=""
                     label="Mobile"
                     fullWidth
+                    type="number"
                     error={errors.r_mobile ? true : false}
                     helperText={errors.r_mobile && errors.r_mobile.message}
                   />
@@ -246,7 +388,7 @@ export default function AddPackage() {
           </Typography>
 
           <div className="grid md:grid-cols-2 md:grid-rows-2 gap-4 grid-rows-4  ">
-            <FormControl fullWidth>
+            {/* <FormControl fullWidth>
               <InputLabel>Select Rate</InputLabel>
               <Select
                 value={selectRate}
@@ -275,7 +417,7 @@ export default function AddPackage() {
                   </div>
                 </MenuItem>
               </Select>
-            </FormControl>
+            </FormControl> */}
 
             <div className="flex gap-2">
               <Controller
