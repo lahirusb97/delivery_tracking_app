@@ -40,9 +40,8 @@ export default function Nav() {
   const [user, loading, error] = useAuthState(auth);
   const [loadingData, setLoadingData] = React.useState(true);
   const [value, setvalue] = React.useState(null);
-  if (!loading && !user) {
-    redirect("/login");
-  }
+  const pathname = usePathname();
+
   const dispatch = useDispatch();
   const router = useRouter();
   const OPEN = useSelector((state) => state.nav_bar.OPEN);
@@ -125,20 +124,24 @@ export default function Nav() {
     }
   }, [user]);
 
-  const pathname = usePathname();
-
-  if (value?.job_role !== "admin") {
-    if (pathname === "/arm/employee_manage") {
-      redirect("/arm/package_scan");
-    }
+  if (!loading && !user) {
+    redirect("/login");
   }
-  if (value?.job_role !== "branch" && value?.job_role !== "admin") {
-    if (
-      pathname === "/arm/normal_package" ||
-      pathname === "/arm/add_package" ||
-      pathname === "/arm/manage_company"
-    ) {
-      redirect("/arm/package_scan");
+
+  if (loadingData !== true) {
+    if (value?.job_role !== "admin") {
+      if (pathname === "/arm/employee_manage") {
+        router.push("/arm/package_scan");
+      }
+    }
+    if (value?.job_role !== "branch" || value?.job_role !== "admin") {
+      if (
+        pathname === "/arm/normal_package" ||
+        pathname === "/arm/add_package" ||
+        pathname === "/arm/manage_company"
+      ) {
+        router.push("/arm/package_scan");
+      }
     }
   }
 

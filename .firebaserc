@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "armair-7e8b8"
-  }
+    "default": "armair-7e8b8",
+    "y": "blue-82b23"
+  },
+  "targets": {},
+  "etags": {}
 }
