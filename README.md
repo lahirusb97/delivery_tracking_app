@@ -1,4 +1,4 @@
-# Courier Service Management System
+# Courier Service Management System [Updated vartion in vite](https://github.com/lahirusb97/courier_management_system)
 
 Next js, Firebase, Redux, MUI
 
